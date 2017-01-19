@@ -18,48 +18,48 @@ class APIController {
         self.token = token
     }
     
-    func parseTwitterResponse(dic : [[String: AnyObject]]) {
+    func parseTwitterResponse(_ dic : [[String: AnyObject]]) {
         for any in dic {
             let tweet = any as NSDictionary
-            let date = tweet.valueForKey("created_at") as! String
-            let tmp = Tweet(name: tweet.valueForKey("user")!.valueForKey("name")! as! String,text: tweet.valueForKey("text")! as! String, date: date)
+            let date = tweet.value(forKey: "created_at") as! String
+            let tmp = Tweet(name: (tweet.value(forKey: "user")! as AnyObject).value(forKey: "name")! as! String,text: tweet.value(forKey: "text")! as! String, date: date)
             self.tweets.append(tmp)
         }
-        dispatch_async(dispatch_get_main_queue()) {
+        DispatchQueue.main.async {
             self.delegate!.handleTweet(self.tweets)   
         }
     }
     
-    func requestTwitterAPI(str: String) {
+    func requestTwitterAPI(_ str: String) {
         self.tweets = []
-        let urlStr = "https://api.twitter.com/1.1/search/tweets.json?q=\(str.stringByAddingPercentEncodingWithAllowedCharacters(NSCharacterSet.URLQueryAllowedCharacterSet())!)&lang=fr&count=100"
-        let url = NSURL(string: urlStr)!
-        let request = NSMutableURLRequest(URL: url)
-        request.HTTPMethod = "GET"
+        let urlStr = "https://api.twitter.com/1.1/search/tweets.json?q=\(str.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed)!)&lang=fr&count=100"
+        let url = URL(string: urlStr)!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
         request.setValue("Bearer " + self.token,forHTTPHeaderField: "Authorization")
-        let task = NSURLSession.sharedSession().dataTaskWithRequest(request) {
+        let task = URLSession.shared.dataTask(with: request) {
             (data, response, error) in
             if let err = error {
-                dispatch_async(dispatch_get_main_queue()) {
+                DispatchQueue.main.async {
                     self.delegate?.handleError(err as NSError)
                 }
             }
             else if let d = data {
                 do {
-                    if let dic: NSDictionary = try NSJSONSerialization.JSONObjectWithData(d, options: NSJSONReadingOptions.MutableContainers) as? NSDictionary {
-                        if let tweets = dic.valueForKey("statuses") as? [[String:AnyObject]] {
+                    if let dic: NSDictionary = try JSONSerialization.jsonObject(with: d, options: JSONSerialization.ReadingOptions.mutableContainers) as? NSDictionary {
+                        if let tweets = dic.value(forKey: "statuses") as? [[String:AnyObject]] {
                             if tweets.count != 0 {
                                 self.parseTwitterResponse(tweets)
                             }
                             else {
-                                dispatch_async(dispatch_get_main_queue()) {
+                                DispatchQueue.main.async {
                                     let noob : NSError = NSError.init(domain: "Search Not Found", code: 1, userInfo: [:] )
                                     self.delegate?.handleError(noob)
                                 }
                             }
                         }
                         else {
-                            dispatch_async(dispatch_get_main_queue()) {
+                            DispatchQueue.main.async {
                                 let noob : NSError = NSError.init(domain: "Missing search input", code: 1, userInfo: [:] )
                                 self.delegate?.handleError(noob)
                             }
@@ -68,7 +68,7 @@ class APIController {
                     }
                 }
                 catch (let err) {
-                    dispatch_async(dispatch_get_main_queue()) {
+                    DispatchQueue.main.async {
                         self.delegate?.handleError(err as NSError)
                     }
                 }

@@ -9,6 +9,6 @@
 import UIKit
 
 protocol APITwitterDelegate: class {
-    func handleTweet (tweet: [Tweet])
-    func handleError(error: NSError)
+    func handleTweet (_ tweet: [Tweet])
+    func handleError(_ error: NSError)
 }
